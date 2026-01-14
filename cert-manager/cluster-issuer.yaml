@@ -1,0 +1,45 @@
+# ClusterIssuers for Let's Encrypt
+# Replace <your-email> with your actual email address
+
+---
+# Staging issuer - use this for testing (higher rate limits, but untrusted certs)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: alexserra258+renewal@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+
+---
+# Production issuer - use this for real certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: alexserra258+renewal@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - dns01:
+          ovh:
+            endpoint: ovh-eu
+            applicationKeySecretRef:
+              name: ovh-credentials
+              key: applicationKey
+            applicationSecretSecretRef:
+              name: ovh-credentials
+              key: applicationSecret
+            consumerKeySecretRef:
+              name: ovh-credentials
+              key: consumerKey

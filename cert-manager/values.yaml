@@ -1,0 +1,14 @@
+# cert-manager Helm values
+# https://artifacthub.io/packages/helm/cert-manager/cert-manager
+
+installCRDs: true
+
+# Resource requests/limits (adjust based on your cluster)
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+# Prometheus metrics (optional)
+prometheus:
+  enabled: false

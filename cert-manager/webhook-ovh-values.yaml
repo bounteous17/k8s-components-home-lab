@@ -1,0 +1,45 @@
+# cert-manager-webhook-ovh values
+configVersion: "0.0.2"
+
+groupName: acme.home-lab.begoodguys.ovh
+
+certManager:
+  namespace: cert-manager
+  serviceAccountName: cert-manager
+
+issuers:
+  - name: letsencrypt-prod
+    create: true
+    kind: ClusterIssuer
+    acmeServerUrl: https://acme-v02.api.letsencrypt.org/directory
+    email: alexserra258+renewal@gmail.com
+    ovhEndpointName: ovh-eu
+    ovhAuthenticationMethod: application
+    ovhAuthenticationRef:
+      applicationKeyRef:
+        name: ovh-credentials
+        key: applicationKey
+      applicationSecretRef:
+        name: ovh-credentials
+        key: applicationSecret
+      applicationConsumerKeyRef:
+        name: ovh-credentials
+        key: consumerKey
+
+  - name: letsencrypt-staging
+    create: true
+    kind: ClusterIssuer
+    acmeServerUrl: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: alexserra258+renewal@gmail.com
+    ovhEndpointName: ovh-eu
+    ovhAuthenticationMethod: application
+    ovhAuthenticationRef:
+      applicationKeyRef:
+        name: ovh-credentials
+        key: applicationKey
+      applicationSecretRef:
+        name: ovh-credentials
+        key: applicationSecret
+      applicationConsumerKeyRef:
+        name: ovh-credentials
+        key: consumerKey

@@ -1,0 +1,18 @@
+# ArgoCD Helm values for chart v9.x
+# https://artifacthub.io/packages/helm/argo/argo-cd
+
+global:
+  domain: argocd.home-lab.begoodguys.ovh
+
+configs:
+  params:
+    # Run insecure mode - TLS is terminated at the ingress
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls: true
