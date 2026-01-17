@@ -8,6 +8,8 @@ Distributed block storage for Kubernetes, providing persistent volumes for appli
 - kubectl configured to access your cluster
 - cert-manager installed with ClusterIssuer configured (see `../cert-manager/`) - required for SSL ingress
 - Traefik ingress controller (comes with k3s by default)
+- DNS configured to point `longhorn.home-lab.begoodguys.ovh` to your cluster
+- IPWhitelist middleware applied (see `../middlewares/ipwhitelist-internal.yaml`)
 - All cluster nodes must have `open-iscsi` installed (required for Longhorn)
 - All cluster nodes must have `nfs-utils` installed (required for Longhorn RWX volumes)
 
@@ -119,12 +121,24 @@ kubectl patch storageclass <other-storage-class> -p '{"metadata": {"annotations"
 kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 ```
 
-### 5. Configure DNS
+### 5. Apply IPWhitelist Middleware
+
+Apply the IPWhitelist middleware to restrict access to internal networks:
+
+```bash
+kubectl apply -f ../middlewares/ipwhitelist-internal.yaml
+```
+
+This restricts access to IPs in the ranges:
+- `192.168.0.0/16` (Mikrotik router internal network)
+- `10.255.255.0/24` (Mikrotik router internal network)
+
+### 6. Configure DNS
 
 Add a DNS record pointing to your cluster:
 - `longhorn.home-lab.begoodguys.ovh` → cluster IP
 
-### 6. Set up Ingress with SSL (Recommended)
+### 7. Set up Ingress with SSL (Internal Access Only)
 
 After Longhorn is installed and running, apply the ingress manifest to expose the UI via HTTPS:
 
@@ -136,6 +150,7 @@ This creates an ingress that:
 - Exposes Longhorn UI at `https://longhorn.home-lab.begoodguys.ovh`
 - Uses cert-manager with DNS-01 challenge (OVH) for automatic SSL certificate
 - Uses Traefik as the ingress controller
+- **Restricts access to internal networks only** (192.168.*.* and 10.255.255.*)
 
 **Verify ingress and certificate:**
 
@@ -150,18 +165,26 @@ kubectl get certificate -n longhorn-system
 kubectl wait --for=condition=ready certificate longhorn-ui-tls -n longhorn-system --timeout=300s
 ```
 
-Once the certificate is ready, access the UI at: **https://longhorn.home-lab.begoodguys.ovh**
+Once the certificate is ready, access the UI at: **https://longhorn.home-lab.begoodguys.ovh** (from devices on internal networks only).
 
-### 7. Access Longhorn UI (Alternative: Port Forward)
+**Note**: Access from external IPs will be blocked by the IPWhitelist middleware.
 
-If you prefer port forwarding instead of ingress:
+### 8. Access Longhorn UI (Alternative: Port Forward)
+
+**Longhorn is accessible via HTTPS with SSL, but restricted to internal networks only** (not exposed to the internet for security reasons).
+
+#### Access from Internal Networks
+
+Access Longhorn UI at `https://longhorn.home-lab.begoodguys.ovh` from devices on internal networks (192.168.*.* or 10.255.255.*).
+
+#### Port Forward (for local access)
 
 ```bash
 # Port forward to access UI
 kubectl port-forward -n longhorn-system svc/longhorn-frontend 8080:80
 ```
 
-Open http://localhost:8080 in your browser.
+Then open http://localhost:8080 in your browser.
 
 ## Upgrade
 

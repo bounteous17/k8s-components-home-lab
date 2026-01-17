@@ -1,0 +1,16 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    # Configure forwarded headers to trust internal networks and nginx proxy
+    # This allows Traefik to use X-Forwarded-For headers from trusted sources
+    additionalArguments:
+      - --entryPoints.web.forwardedHeaders.trustedIPs=192.168.10.0/24,192.168.11.0/24,10.255.255.0/24,10.43.0.0/16
+      - --entryPoints.websecure.forwardedHeaders.trustedIPs=192.168.10.0/24,192.168.11.0/24,10.255.255.0/24,10.43.0.0/16
+      - --entryPoints.web.forwardedHeaders.insecure=false
+      - --entryPoints.websecure.forwardedHeaders.insecure=false
+      - --entryPoints.websecure.proxyProtocol.trustedIPs=10.42.0.0/16,10.43.0.0/16
+      - --entryPoints.websecure.proxyProtocol.insecure=false

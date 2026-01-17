@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx-proxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-proxy
+  namespace: nginx-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-proxy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-proxy
+  namespace: nginx-proxy
+spec:
+  type: LoadBalancer  # Change to NodePort if LoadBalancer not available
+  selector:
+    app: nginx-proxy
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 443
+    protocol: TCP
+    name: https
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nginx-proxy
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    # Stream module for SSL passthrough (HTTPS) with Proxy Protocol
+    stream {
+        upstream traefik_https {
+            server traefik.kube-system.svc.cluster.local:443;
+        }
+        
+        server {
+            listen 443;
+            proxy_pass traefik_https;
+            proxy_protocol on;  # Enable Proxy Protocol to send client IP
+            proxy_timeout 1s;
+            proxy_responses 1;
+            error_log /var/log/nginx/stream_error.log;
+        }
+    }
+    
+    http {
+        # Upstream to Traefik
+        upstream traefik {
+            server traefik.kube-system.svc.cluster.local:80;
+        }
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        error_log /var/log/nginx/error.log warn;
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            # Set X-Forwarded-For header with real client IP
+            # This is the key: $remote_addr is the actual client IP
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Port $server_port;
+            
+            # Timeouts
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            
+            location / {
+                proxy_pass http://traefik;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                
+                # Buffering
+                proxy_buffering off;
+                proxy_request_buffering off;
+            }
+        }
+        
+    }

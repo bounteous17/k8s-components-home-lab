@@ -7,6 +7,7 @@ Kubernetes configurations for a k3s home lab cluster, managed via ArgoCD GitOps.
 - k3s cluster with kubectl access
 - Helm 3 installed
 - DNS configured for your domain (`*.home-lab.begoodguys.ovh`)
+- Apply IPWhitelist middleware before deploying internal services (see [middlewares](./middlewares/))
 
 ## Repository Structure
 
@@ -15,6 +16,7 @@ k8s-components-home-lab/
 ├── longhorn/         # Longhorn Helm configuration
 ├── cert-manager/     # cert-manager Helm configuration
 ├── argocd/           # ArgoCD Helm configuration
+├── middlewares/      # Traefik middleware configurations
 ├── apps/             # ArgoCD Application manifests
 ├── manifests/        # Plain YAML Kubernetes manifests
 └── charts/           # Custom Helm charts
@@ -22,18 +24,18 @@ k8s-components-home-lab/
 
 ## Infrastructure Components
 
-| Component | Description | Type | URL |
-|-----------|-------------|------|-----|
-| [longhorn](./longhorn/) | Distributed block storage for persistent volumes | Helm | https://longhorn.home-lab.begoodguys.ovh |
+| Component | Description | Type | Access |
+|-----------|-------------|------|--------|
+| [longhorn](./longhorn/) | Distributed block storage for persistent volumes | Helm | Internal networks only (https://longhorn.home-lab.begoodguys.ovh) |
 | [cert-manager](./cert-manager/) | Automated TLS certificate management with Let's Encrypt | Helm | - |
-| [argocd](./argocd/) | GitOps continuous delivery | Helm | https://argocd.home-lab.begoodguys.ovh |
+| [argocd](./argocd/) | GitOps continuous delivery | Helm | Internal networks only (https://argocd.home-lab.begoodguys.ovh) |
 
 ## Applications
 
-| Application | Description | Type | URL |
-|-------------|-------------|------|-----|
-| [jellyfin](./manifests/jellyfin/) | Media server for movies, TV, music | Plain YAML | https://jellyfin.home-lab.begoodguys.ovh:8443 |
-| [qbittorrent](./manifests/qbittorrent/) | BitTorrent client with web UI | Plain YAML | https://qbittorrent.home-lab.begoodguys.ovh |
+| Application | Description | Type | Access |
+|-------------|-------------|------|--------|
+| [jellyfin](./manifests/jellyfin/) | Media server for movies, TV, music | Plain YAML | Public (https://jellyfin.home-lab.begoodguys.ovh) |
+| [qbittorrent](./manifests/qbittorrent/) | BitTorrent client with web UI | Plain YAML | Internal networks only (https://qbittorrent.home-lab.begoodguys.ovh) |
 | [immich](./charts/immich/) | Self-hosted photo/video backup | Helm Chart | https://immich.home-lab.begoodguys.ovh |
 
 ## Installation Order
@@ -45,14 +47,18 @@ k8s-components-home-lab/
 ```bash
 # 1. Install Longhorn first (provides storage for all applications)
 cd longhorn && helm install ...
-# After installation, apply ingress: kubectl apply -f longhorn/ingress.yaml
 
 # 2. Install cert-manager (provides TLS certificates)
 cd cert-manager && helm install ...
 
-# 3. Install ArgoCD (GitOps tool for managing applications)
+# 3. Apply IPWhitelist middleware (restricts internal services to internal networks)
+kubectl apply -f middlewares/ipwhitelist-internal.yaml
+
+# 4. Install ArgoCD (GitOps tool for managing applications)
 cd argocd && helm install ...
 ```
+
+**Note**: Longhorn and ArgoCD are accessible via HTTPS with SSL at their domain names, but access is restricted to internal networks only (192.168.*.* and 10.255.255.*). They are not exposed to the internet. See their respective README files for details.
 
 Follow the README in each directory for detailed instructions.
 

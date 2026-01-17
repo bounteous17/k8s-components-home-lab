@@ -1,6 +1,7 @@
 ---
 # Ingress for Longhorn UI
 # Apply this after installing Longhorn: kubectl apply -f ingress.yaml
+# Access restricted to internal networks only (192.168.*.* and 10.255.255.*)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,6 +9,7 @@ metadata:
   namespace: longhorn-system
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: default-ipwhitelist-internal@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

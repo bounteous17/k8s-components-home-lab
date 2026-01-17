@@ -9,6 +9,7 @@ Before deploying via ArgoCD, complete these manual steps:
 - cert-manager installed with ClusterIssuer configured (see `../cert-manager/`) - required for SSL ingress
 - Traefik ingress controller (comes with k3s by default)
 - DNS configured to point `qbittorrent.home-lab.begoodguys.ovh` to your cluster
+- IPWhitelist middleware applied (see `../middlewares/ipwhitelist-internal.yaml`)
 
 ### 1. NFS PersistentVolume
 
@@ -28,7 +29,19 @@ This creates a PersistentVolume pointing to:
 kubectl create namespace qbittorrent
 ```
 
-### 3. Configure DNS
+### 3. Apply IPWhitelist Middleware
+
+Apply the IPWhitelist middleware to restrict access to internal networks:
+
+```bash
+kubectl apply -f ../middlewares/ipwhitelist-internal.yaml
+```
+
+This restricts access to IPs in the ranges:
+- `192.168.0.0/16` (Mikrotik router internal network)
+- `10.255.255.0/24` (Mikrotik router internal network)
+
+### 4. Configure DNS
 
 Add a DNS record pointing to your cluster:
 - `qbittorrent.home-lab.begoodguys.ovh` → cluster IP
@@ -45,7 +58,15 @@ Or let ArgoCD auto-sync if you've already registered the repository.
 
 ## Access
 
+**qBittorrent is accessible via HTTPS with SSL, but restricted to internal networks only** (not exposed to the internet for security reasons).
+
+### Access from Internal Networks
+
 qBittorrent is exposed via Ingress with TLS at `https://qbittorrent.home-lab.begoodguys.ovh`.
+
+**Access is restricted to internal IP ranges:**
+- `192.168.*.*` (Mikrotik router internal network)
+- `10.255.255.*` (Mikrotik router internal network)
 
 **After deployment, verify ingress and certificate:**
 
@@ -60,9 +81,20 @@ kubectl get certificate -n qbittorrent
 kubectl wait --for=condition=ready certificate qbittorrent-tls -n qbittorrent --timeout=300s
 ```
 
-Once the certificate is ready, access qBittorrent at: **https://qbittorrent.home-lab.begoodguys.ovh**
+Once the certificate is ready, access qBittorrent at: **https://qbittorrent.home-lab.begoodguys.ovh** (from devices on internal networks only).
 
-**Note**: The ingress uses cert-manager with DNS-01 challenge (OVH) for automatic SSL certificate issuance.
+**Note**: The ingress uses cert-manager with DNS-01 challenge (OVH) for automatic SSL certificate issuance. Access from external IPs will be blocked by the IPWhitelist middleware.
+
+### Alternative Access Methods
+
+#### Port Forward (for local access)
+
+```bash
+# Port forward to access web UI
+kubectl port-forward -n qbittorrent svc/qbittorrent 8080:8080
+```
+
+Then open http://localhost:8080 in your browser.
 
 ## Initial Setup
 
