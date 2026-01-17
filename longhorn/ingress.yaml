@@ -1,0 +1,27 @@
+---
+# Ingress for Longhorn UI
+# Apply this after installing Longhorn: kubectl apply -f ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ui
+  namespace: longhorn-system
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - longhorn.home-lab.begoodguys.ovh
+      secretName: longhorn-ui-tls
+  rules:
+    - host: longhorn.home-lab.begoodguys.ovh
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: longhorn-frontend
+                port:
+                  number: 80

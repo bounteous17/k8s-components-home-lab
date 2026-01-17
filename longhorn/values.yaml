@@ -1,0 +1,220 @@
+# Longhorn Helm Chart Values
+# See https://longhorn.io/docs/latest/deploy/install/install-with-helm/
+# Documentation: https://longhorn.io/docs/latest/references/settings/
+
+# ============================================================================
+# DEFAULT SETTINGS
+# ============================================================================
+# These settings apply to all volumes created by Longhorn unless overridden
+defaultSettings:
+  # Storage path on nodes (should be on dedicated disk/partition if possible)
+  defaultDataPath: /var/lib/longhorn
+  
+  # Replica count: Set to 2 for 2-node replication (matches your setup)
+  # Options: "1", "2", "3" (higher = more durability, requires more nodes)
+  defaultReplicaCount: "2"
+  
+  # Replica soft anti-affinity: Distribute replicas across different nodes
+  # false = replicas can be on same node (not recommended for HA)
+  # true = prefer different nodes (recommended)
+  replicaSoftAntiAffinity: "true"
+  
+  # Replica zone soft anti-affinity: Distribute across zones if available
+  # Useful if you have nodes in different physical locations
+  replicaZoneSoftAntiAffinity: "true"
+  
+  # Replica disk soft anti-affinity: Distribute replicas across different disks
+  # true = prefer different disks on same node (better for multi-disk nodes)
+  replicaDiskSoftAntiAffinity: "true"
+  
+  # Automatic replica rebalancing
+  # "disabled" = no automatic rebalancing
+  # "least-effort" = rebalance when needed, minimize churn (recommended for stable clusters)
+  # "best-effort" = aggressive rebalancing for optimal distribution
+  replicaAutoBalance: "least-effort"
+  
+  # Data locality: Where to place data relative to workload
+  # "disabled" = no preference
+  # "best-effort" = try to place on same node as workload (good for performance)
+  # "strict-local" = must be on same node (best performance, less HA)
+  defaultDataLocality: "best-effort"
+  
+  # Storage over-provisioning percentage
+  # Allows scheduling volumes even if logical capacity exceeds physical
+  # 100 = no over-provisioning, 200 = allow 2x logical capacity
+  # Be careful: can lead to out-of-space issues if not monitored
+  storageOverProvisioningPercentage: "150"
+  
+  # Minimum available storage percentage before stopping new volume scheduling
+  # When disk usage exceeds (100 - this value)%, no new volumes scheduled
+  # Lower = more aggressive usage, higher = more conservative
+  storageMinimalAvailablePercentage: "15"
+  
+  # Create default disk only on labeled nodes
+  # true = only nodes with specific labels will be used for storage
+  # Useful to restrict storage to server nodes with SSDs only
+  createDefaultDiskLabeledNodes: "true"  # Enabled: only nodes with storage-node=true label will be used
+  
+  # Snapshot settings
+  # Maximum number of snapshots per volume (default: 250)
+  snapshotMaxCount: "100"
+  
+  # Automatic snapshot/backup settings
+  # Cron schedule for automatic snapshots (empty = disabled)
+  # Format: "0 2 * * 0" = Sunday at 2am
+  # automaticSnapshotSchedule: ""
+  
+  # Snapshot data integrity check cron job
+  # Schedule for checking snapshot integrity (empty = disabled)
+  # snapshotDataIntegrityCheckCronJob: "0 3 * * 0"  # Sunday at 3am
+  
+  # Upgrade checker: Notify about new Longhorn versions
+  # false = disable (recommended for homelab with manual upgrades)
+  enableUpgradeChecker: "false"
+  
+  # Priority class for Longhorn pods (optional)
+  # Ensures Longhorn components get scheduled even under resource pressure
+  # priorityClass: "longhorn-critical"
+  
+  # Guaranteed CPU for instance manager (millicpu)
+  # Reserve CPU for Longhorn instance manager pods
+  # Useful if you have many volumes and want to ensure performance
+  # guaranteedInstanceManagerCpu: "1250"  # 1.25 CPU cores
+  
+  # Disable revision counter (performance optimization)
+  # true = disable revision counter for better performance (slight risk)
+  # false = enable revision counter (safer, default)
+  disableRevisionCounter: "false"
+
+# ============================================================================
+# SERVICE CONFIGURATION
+# ============================================================================
+service:
+  # UI service type
+  # ClusterIP = internal access only (recommended for homelab)
+  # NodePort = access via node IP:port
+  # LoadBalancer = external load balancer (if available)
+  ui:
+    type: ClusterIP
+    # Uncomment to expose UI on specific port
+    # nodePort: 30880
+
+# ============================================================================
+# NODE SELECTOR & TOLERATIONS
+# ============================================================================
+# Restrict Longhorn components to specific nodes
+# Useful to run Longhorn only on server nodes with SSDs (Arch Linux)
+# and exclude agent nodes (Raspbian) from storage
+
+# Global node selector (applies to all Longhorn components)
+# Restricts Longhorn components to run only on labeled storage nodes
+# Label nodes using: ansible-playbook label-storage-nodes.yml -i inventory.yml
+global:
+  nodeSelector:
+    storage-node: "true"
+
+# Component-specific node selectors (override global)
+# longhornManager:
+#   nodeSelector:
+#     storage-node: "true"
+# longhornDriver:
+#   nodeSelector:
+#     storage-node: "true"
+
+# Tolerations (if nodes are tainted)
+# global:
+#   tolerations:
+#     - key: "node-role.kubernetes.io/storage"
+#       operator: "Exists"
+#       effect: "NoSchedule"
+
+# ============================================================================
+# RESOURCE LIMITS
+# ============================================================================
+# Adjust resource requests/limits for Longhorn components
+# Uncomment and adjust based on your cluster capacity
+
+# longhornManager:
+#   resources:
+#     requests:
+#       cpu: 100m
+#       memory: 256Mi
+#     limits:
+#       cpu: 1000m
+#       memory: 512Mi
+
+# longhornDriver:
+#   resources:
+#     requests:
+#       cpu: 50m
+#       memory: 128Mi
+#     limits:
+#       cpu: 500m
+#       memory: 256Mi
+
+# longhornUI:
+#   resources:
+#     requests:
+#       cpu: 50m
+#       memory: 128Mi
+#     limits:
+#       cpu: 200m
+#       memory: 256Mi
+
+# ============================================================================
+# PERSISTENCE CONFIGURATION
+# ============================================================================
+# Storage class and reclaim policy settings
+persistence:
+  # Set Longhorn as default storage class
+  defaultClass: true
+  
+  # Default class replica count (should match defaultReplicaCount)
+  defaultClassReplicaCount: 2
+  
+  # Reclaim policy for PersistentVolumes
+  # Retain = keep PVs after Longhorn uninstall (safer)
+  # Delete = delete PVs when Longhorn is removed (default)
+  reclaimPolicy: Retain
+
+# ============================================================================
+# BACKUP CONFIGURATION (OPTIONAL)
+# ============================================================================
+# Enable automatic backups to S3-compatible storage
+# Requires: S3 bucket and credentials secret
+
+# defaultSettings:
+#   # Backup target (S3-compatible)
+#   backupTarget: "s3://backup-bucket@us-east-1/backup"
+#   
+#   # Secret containing S3 credentials
+#   # Create with: kubectl create secret generic longhorn-backup-secret \
+#   #   --from-literal=AWS_ACCESS_KEY_ID=xxx \
+#   #   --from-literal=AWS_SECRET_ACCESS_KEY=xxx \
+#   #   --from-literal=AWS_ENDPOINTS=xxx \
+#   #   -n longhorn-system
+#   backupTargetCredentialSecret: "longhorn-backup-secret"
+#   
+#   # Backup store polling interval (seconds)
+#   backupstorePollInterval: "300"
+
+# ============================================================================
+# ADVANCED SETTINGS
+# ============================================================================
+# Uncomment and adjust these for advanced use cases
+
+# # Enable CSI migration (if upgrading from in-tree volumes)
+# csiMigration:
+#   enabled: false
+
+# # Custom registry for Longhorn images (if using private registry)
+# image:
+#   longhorn:
+#     repository: longhornio/longhorn-manager
+#     tag: v1.10.1
+#     pullPolicy: IfNotPresent
+
+# # Custom CA certificate (if using self-signed certs)
+# # customCA:
+# #   secretName: "longhorn-ca"
+# #   secretNamespace: "longhorn-system"

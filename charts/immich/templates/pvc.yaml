@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-upload
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - {{ .Values.persistence.upload.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.upload.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-model-cache
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - {{ .Values.persistence.model-cache.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.model-cache.size }}

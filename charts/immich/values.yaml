@@ -1,0 +1,87 @@
+# Immich Helm Chart Values
+
+# Server configuration
+server:
+  image:
+    repository: ghcr.io/immich-app/immich-server
+    tag: v1.123.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# Machine Learning microservices
+microservices:
+  image:
+    repository: ghcr.io/immich-app/immich-machine-learning
+    tag: v1.123.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+# Redis configuration
+redis:
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# PostgreSQL configuration
+postgresql:
+  image:
+    repository: tensorchord/pgvecto-rs
+    tag: pg16-v0.2.1
+    pullPolicy: IfNotPresent
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Persistence
+persistence:
+  upload:
+    size: 100Gi
+    accessMode: ReadWriteOnce
+  model-cache:
+    size: 10Gi
+    accessMode: ReadWriteOnce
+
+# Ingress
+ingress:
+  enabled: true
+  className: traefik
+  host: immich.home-lab.begoodguys.ovh
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: immich-tls
+
+# Secrets (references to manually created secrets)
+secrets:
+  database:
+    name: immich-db-secret
+    key: postgres-password
+  immich:
+    name: immich-secrets

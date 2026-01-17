@@ -1,0 +1,33 @@
+---
+# Config storage - dynamically provisioned
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Media storage - binds to existing NFS PersistentVolume
+# Requires: PV named "jellyfin-media-pv" must be created manually (see README.md)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-media
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeName: jellyfin-media-pv
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
