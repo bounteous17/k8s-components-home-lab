@@ -11,7 +11,7 @@ spec:
     - name: http
       port: 8096
       targetPort: http
-      nodePort: 8443
+      nodePort: 30843  # NodePort range is 30000-32767, using 30843 (maps to router port 8443)
       protocol: TCP
   selector:
     app: jellyfin

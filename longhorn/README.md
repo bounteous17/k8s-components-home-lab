@@ -41,6 +41,16 @@ This playbook automatically handles the mixed OS environment:
 
 The playbook installs the NFS utilities and enables the `rpcbind` service, which is required for Longhorn to create disks on nodes.
 
+### External SSD Setup (Optional but Recommended)
+
+If you want to mount an external SSD to `/var/lib/longhorn` for better performance and capacity, see [EXTERNAL_DISK_SETUP.md](./EXTERNAL_DISK_SETUP.md) for detailed instructions and troubleshooting.
+
+**Quick fix if space isn't appearing:**
+1. Verify the mount: `df -h /mnt/longhorn` on each node
+2. Upgrade Longhorn with updated values.yaml or manually add disk in UI
+3. Restart Longhorn manager: `kubectl rollout restart deployment/longhorn-manager -n longhorn-system`
+4. Check Longhorn UI → Nodes → Edit Disks to verify `/mnt/longhorn` is detected
+
 ### Label Storage Nodes
 
 Label the server nodes (master nodes with SSDs) so Longhorn only uses them for storage:

@@ -25,9 +25,9 @@ metadata:
     app: jellyfin
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteMany  # Multiple pods can read, but Jellyfin runs as single pod (prevents write conflicts)
   volumeName: jellyfin-media-pv
   resources:
     requests:
-      storage: 1Ti
+      storage: 200Gi
   storageClassName: ""

@@ -1,0 +1,33 @@
+---
+# Config storage - dynamically provisioned
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: qbittorrent
+  labels:
+    app: qbittorrent
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Downloads storage - uses same NFS export as Jellyfin
+# Requires: PV named "qbittorrent-downloads-pv" must be created manually (see pv.yaml)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-downloads
+  namespace: qbittorrent
+  labels:
+    app: qbittorrent
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeName: qbittorrent-downloads-pv
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: ""

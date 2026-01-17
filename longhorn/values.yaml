@@ -8,7 +8,8 @@
 # These settings apply to all volumes created by Longhorn unless overridden
 defaultSettings:
   # Storage path on nodes (should be on dedicated disk/partition if possible)
-  defaultDataPath: /var/lib/longhorn
+  # Changed to /mnt/longhorn for external SSD mount
+  defaultDataPath: /mnt/longhorn
   
   # Replica count: Set to 2 for 2-node replication (matches your setup)
   # Options: "1", "2", "3" (higher = more durability, requires more nodes)

@@ -32,7 +32,8 @@ k8s-components-home-lab/
 
 | Application | Description | Type | URL |
 |-------------|-------------|------|-----|
-| [jellyfin](./manifests/jellyfin/) | Media server for movies, TV, music | Plain YAML | https://jellyfin.home-lab.begoodguys.ovh |
+| [jellyfin](./manifests/jellyfin/) | Media server for movies, TV, music | Plain YAML | https://jellyfin.home-lab.begoodguys.ovh:8443 |
+| [qbittorrent](./manifests/qbittorrent/) | BitTorrent client with web UI | Plain YAML | https://qbittorrent.home-lab.begoodguys.ovh |
 | [immich](./charts/immich/) | Self-hosted photo/video backup | Helm Chart | https://immich.home-lab.begoodguys.ovh |
 
 ## Installation Order
@@ -65,6 +66,9 @@ argocd repo add https://github.com/alexserra98/k8s-components-home-lab.git
 
 # Deploy Jellyfin (see manifests/jellyfin/README.md for prerequisites)
 kubectl apply -f apps/jellyfin.yaml
+
+# Deploy qBittorrent (see manifests/qbittorrent/README.md for prerequisites)
+kubectl apply -f apps/qbittorrent.yaml
 
 # Deploy Immich (see charts/immich/README.md for prerequisites)
 kubectl apply -f apps/immich.yaml

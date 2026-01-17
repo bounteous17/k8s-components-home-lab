@@ -1,0 +1,18 @@
+---
+# NFS PersistentVolume for qBittorrent downloads
+# Points to same NFS export as Jellyfin (octopus node at /mnt/nas-kingston)
+# This PV must be created before deploying qBittorrent
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qbittorrent-downloads-pv
+spec:
+  capacity:
+    storage: 200Gi  # Same as Jellyfin PV, points to same NFS share
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read, but qBittorrent runs as single pod
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.11.51  # octopus node
+    path: /mnt/nas-kingston
+  storageClassName: ""

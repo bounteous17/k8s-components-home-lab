@@ -1,0 +1,19 @@
+---
+# NFS PersistentVolume for Jellyfin media library
+# Points to NFS export on octopus node (192.168.11.51)
+# Limited to 200GB out of 256GB total Kingston SSD capacity
+# This PV must be created before deploying Jellyfin
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-pv
+spec:
+  capacity:
+    storage: 200Gi  # Limited to 200GB (256GB total Kingston SSD, 56GB reserved)
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read, but Jellyfin runs as single pod (prevents write conflicts)
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.11.51  # octopus node
+    path: /mnt/nas-kingston
+  storageClassName: ""

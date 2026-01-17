@@ -22,31 +22,30 @@ kubectl get storageclass
 kubectl create namespace jellyfin
 ```
 
-### 3. Create NFS PersistentVolume for Media
+### 3. Configure NFS Export on Octopus Node
 
-Jellyfin media storage uses an existing NFS mount. Create the PersistentVolume:
+First, configure the NFS export on the octopus node (192.168.11.51):
 
 ```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: jellyfin-media-pv
-spec:
-  capacity:
-    storage: 1Ti
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  nfs:
-    server: <your-nfs-server>       # e.g., 192.168.1.100
-    path: <your-nfs-export-path>    # e.g., /mnt/media/jellyfin
-EOF
+# From the ansible-kubernetes-home-lab repository
+ansible-playbook configure-nfs-export.yml -i inventory.yml --limit 192.168.11.51
 ```
 
-Replace `<your-nfs-server>` and `<your-nfs-export-path>` with your NFS configuration.
+This exports `/mnt/nas-kingston` from the octopus node to all network addresses.
 
-### 4. Configure DNS
+### 4. Create NFS PersistentVolume for Media
+
+Jellyfin media storage uses the NFS export from the octopus node. Create the PersistentVolume:
+
+```bash
+kubectl apply -f manifests/jellyfin/pv.yaml
+```
+
+This creates a PersistentVolume pointing to:
+- **NFS Server**: `192.168.11.51` (octopus node)
+- **NFS Path**: `/mnt/nas-kingston`
+
+### 5. Configure DNS
 
 Add a DNS record pointing to your cluster:
 - `jellyfin.home-lab.begoodguys.ovh` → cluster IP
@@ -76,13 +75,18 @@ kubectl describe svc jellyfin -n jellyfin
 
 ## Access
 
-Jellyfin is exposed via NodePort on port **8443** (configured to match your router's exposed port).
+Jellyfin is exposed via NodePort on port **30843** (Kubernetes NodePort range: 30000-32767).
+
+**Router Configuration**: Configure your router to forward external port **8443** to internal port **30843** on your cluster nodes.
 
 Access Jellyfin at:
-- **From internet**: `https://<your-router-ip>:8443` or `https://jellyfin.home-lab.begoodguys.ovh:8443`
-- **From local network**: `http://<cluster-node-ip>:8443` or `https://jellyfin.home-lab.begoodguys.ovh:8443`
+- **From internet**: `https://<your-router-ip>:8443` or `https://jellyfin.home-lab.begoodguys.ovh:8443` (router forwards 8443 → 30843)
+- **From local network**: `http://<cluster-node-ip>:30843` or `https://jellyfin.home-lab.begoodguys.ovh:8443`
 
-**Note**: Port 8443 is used because it's the only port your router exposes to the internet. SSL/TLS can be handled at the router level or by Jellyfin's built-in SSL configuration.
+**Note**: 
+- Kubernetes NodePort range is 30000-32767, so we use 30843 internally
+- Your router should forward external port 8443 to internal port 30843
+- SSL/TLS can be handled at the router level or by Jellyfin's built-in SSL configuration
 
 Initial setup will guide you through creating an admin account.
 
@@ -90,8 +94,10 @@ Initial setup will guide you through creating an admin account.
 
 ### Storage
 
-- `jellyfin-config`: Configuration and metadata (default: 10Gi, dynamically provisioned)
-- `jellyfin-media`: Media files (NFS mount, create PV manually - see prerequisites)
+- `jellyfin-config`: Configuration and metadata (default: 10Gi, dynamically provisioned via Longhorn)
+- `jellyfin-media`: Media files (NFS mount from octopus node at `/mnt/nas-kingston`, ReadWriteMany access mode)
+
+The media library is stored on the NFS export from the octopus node (192.168.11.51). The volume is configured with `ReadWriteMany` access mode, which allows multiple pods to mount it simultaneously for reading. Since Jellyfin runs as a single pod, there's no risk of concurrent write conflicts - only the Jellyfin pod will write to the media library.
 
 ### Resource Limits
 
