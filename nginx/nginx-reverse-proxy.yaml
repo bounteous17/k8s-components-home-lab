@@ -4,12 +4,11 @@ metadata:
   name: nginx-proxy
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: nginx-proxy
   namespace: nginx-proxy
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: nginx-proxy
@@ -18,8 +17,6 @@ spec:
       labels:
         app: nginx-proxy
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: octopus
       containers:
       - name: nginx
         image: nginx:alpine
@@ -50,8 +47,10 @@ kind: Service
 metadata:
   name: nginx-proxy
   namespace: nginx-proxy
+  annotations:
+    svccontroller.k3s.cattle.io/disablelb: "true"
 spec:
-  type: LoadBalancer  # Change to NodePort if LoadBalancer not available
+  type: LoadBalancer  # svclb disabled via annotation
   externalTrafficPolicy: Local
   selector:
     app: nginx-proxy
