@@ -18,6 +18,8 @@ spec:
       labels:
         app: nginx-proxy
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: octopus
       containers:
       - name: nginx
         image: nginx:alpine
@@ -50,6 +52,7 @@ metadata:
   namespace: nginx-proxy
 spec:
   type: LoadBalancer  # Change to NodePort if LoadBalancer not available
+  externalTrafficPolicy: Local
   selector:
     app: nginx-proxy
   ports:

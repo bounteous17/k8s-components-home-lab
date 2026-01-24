@@ -15,6 +15,8 @@ Distributed block storage for Kubernetes, providing persistent volumes for appli
 
 ### Install open-iscsi on cluster nodes
 
+**CRITICAL**: `open-iscsi` must be installed on **ALL nodes** that will use Longhorn volumes, not just storage nodes. This includes nodes like "eagle" and "lios" that consume volumes but don't host storage replicas.
+
 Use the Ansible playbook in the `ansible-kubernetes-home-lab` repository to install `open-iscsi` on all nodes:
 
 ```bash
@@ -27,6 +29,12 @@ This playbook automatically handles the mixed OS environment:
 - **Raspbian** (agent nodes): Installs via `apt`
 
 The playbook installs `open-iscsi` on all cluster nodes and enables the `iscsid` service, which is required for Longhorn to function properly.
+
+**If you add new nodes to the cluster**, you must:
+1. Install `open-iscsi` on the new node
+2. Ensure `iscsid` service is running
+3. Longhorn will automatically discover the node (may take a few minutes)
+4. If nodes don't appear, restart Longhorn manager: `kubectl rollout restart deployment/longhorn-manager -n longhorn-system`
 
 ### Install nfs-utils on cluster nodes
 
@@ -62,7 +70,12 @@ Label the server nodes (master nodes with SSDs) so Longhorn only uses them for s
 ansible-playbook label-storage-nodes.yml -i inventory.yml
 ```
 
-This labels all server nodes with `storage-node=true`. The Longhorn Helm chart is configured to only use nodes with this label, excluding agent nodes (Raspbian) which don't have sufficient storage speed.
+This labels all server nodes with `storage-node=true`. The Longhorn Helm chart is configured to:
+- **Store replicas only on nodes with `storage-node=true`** (octopus, panda)
+- **Run CSI driver and instance manager on ALL nodes** (allows any node to use Longhorn volumes)
+- **Run Longhorn manager and UI only on storage nodes** (manages storage)
+
+This means nodes like "eagle" and "lios" can use Longhorn volumes even though they don't host storage replicas.
 
 ### Load dm_crypt Kernel Modules (Optional)
 

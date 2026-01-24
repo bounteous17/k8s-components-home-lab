@@ -104,23 +104,35 @@ service:
 # NODE SELECTOR & TOLERATIONS
 # ============================================================================
 # Restrict Longhorn components to specific nodes
-# Useful to run Longhorn only on server nodes with SSDs (Arch Linux)
-# and exclude agent nodes (Raspbian) from storage
+# Useful to run Longhorn storage on server nodes with SSDs (Arch Linux)
+# while allowing all nodes to use Longhorn volumes
 
-# Global node selector (applies to all Longhorn components)
-# Restricts Longhorn components to run only on labeled storage nodes
-# Label nodes using: ansible-playbook label-storage-nodes.yml -i inventory.yml
-global:
+# IMPORTANT: Do NOT use global.nodeSelector here because:
+# - longhornDriver (CSI driver) MUST run on ALL nodes that use Longhorn volumes
+# - longhornInstanceManager MUST run on ALL nodes to attach/mount volumes
+# - Only longhornManager needs to run on storage nodes (manages storage)
+
+# Component-specific node selectors
+# longhornManager: MUST run on ALL nodes to register them in Longhorn
+# Even nodes without storage need the manager to be registered and use volumes
+# No nodeSelector = runs on all nodes
+# longhornManager:
+#   nodeSelector: {}
+
+# longhornDriver: CSI driver - MUST run on ALL nodes that use Longhorn volumes
+# No nodeSelector = runs on all nodes
+# longhornDriver:
+#   nodeSelector: {}
+
+# longhornInstanceManager: Manages volume attachments - MUST run on ALL nodes
+# No nodeSelector = runs on all nodes
+# longhornInstanceManager:
+#   nodeSelector: {}
+
+# longhornUI: UI can run on storage nodes only
+longhornUI:
   nodeSelector:
     storage-node: "true"
-
-# Component-specific node selectors (override global)
-# longhornManager:
-#   nodeSelector:
-#     storage-node: "true"
-# longhornDriver:
-#   nodeSelector:
-#     storage-node: "true"
 
 # Tolerations (if nodes are tainted)
 # global:

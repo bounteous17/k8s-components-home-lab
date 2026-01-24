@@ -9,3 +9,4 @@ spec:
       - 192.168.10.0/24
       - 192.168.11.0/24
       - 10.255.255.0/24
+      - 10.42.0.0/16  # Kubernetes pod network (workaround - nginx sees pod network IPs due to NodePort NAT)
